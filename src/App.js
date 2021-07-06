@@ -4,6 +4,7 @@ import './App.css';
 // import detectEthereumProvider from '@metamask/detect-provider';
 // import MetaMaskOnboarding from '@metamask/onboarding';
 import Web3 from 'web3';
+import Bank from './abis/Bank.json';
 
 // const currentUrl = new URL(window.location.href)
 // const forwarderOrigin = currentUrl.hostname === 'localhost' ? 'http://localhost:9010': undefined;
@@ -16,15 +17,16 @@ class App extends Component {
       web3: '',
       account: '',
       token: null,
-      dbank: null,
+      dbank: '0x643F3c36890A20620efEAaEae9B1e8F7D8Ba3638',
       balance: 0,
-      dBankAddress: null,
+      bankAddress: null,
       network: ''
     }
   }
   
   componentWillMount() {
     this.loadBlockChainData();
+    // this.getBank();
   }
 
   /**
@@ -32,12 +34,12 @@ class App extends Component {
    */
   async loadBlockChainData() {
 
-    const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
+    const web3 = new Web3(Web3.givenProvider || "http://localhost:7545");
     this.setState({ web3: web3 });
     const network = await web3.eth.net.getNetworkType()
     this.setState({ network: network });
     console.log(network);
-    console.log(this.state.web3);
+    // console.log(this.state.web3);
     try {
       this.connect(); // if user is logged in
     } 
@@ -46,27 +48,42 @@ class App extends Component {
       // show connect button
     }
 
-    // Get the account
-    // const accounts = await web3.eth.getAccounts();
-    // console.log(accounts[0]);
-    // this.setState({ account: accounts[0] });
-    // var balance = web3.utils.fromWei(await web3.eth.getBalance(accounts[0]), 'ether');
-    // balance = Math.round(balance * 100) / 100;
-    // console.log(balance);
-    // this.setState({ balance: balance });
+    //ethereum.on('chainChanged', handler: (chainId: string) => void);
+    // ethereum.on('chainChanged', (_chainId) => window.location.reload());
 
+
+    // Load Bank contract - get balance for the user
+    const networkId = await web3.eth.net.getId();
+    console.log('networkId', networkId);
+    const deployedNetwork = Bank.networks[networkId];
+    if (deployedNetwork) {
+      console.log('deployedNetwork', deployedNetwork); // maybe some error handling here fo different network
+      const address = deployedNetwork.address
+      console.log('address', address);
+      this.setState({ bankAddress: address });
+      this.setState({ bank: new web3.eth.Contract(
+        Bank.abi,
+        deployedNetwork && address,
+      )});
+    } else {
+      window.alert('MetaMask is using a different network'); // Maybe a different message here
+    }
+    
+    
 
   }
 
-  // async getAccount() {
-  //   // Get the account
-  //   const accounts = await this.web3.eth.getAccounts();
-  //   console.log(accounts[0]);
-  //   this.setState({ account: accounts[0] });
-  //   var balance = this.web3.utils.fromWei(await this.web3.eth.getBalance(accounts[0]), 'ether');
-  //   balance = Math.round(balance * 100) / 100;
-  //   console.log(balance);
-  //   this.setState({ balance: balance });
+
+  /**
+   * Get the Bank contract address - hard coded for now
+   */
+  // async getBank(){
+  //   let bank;
+  //   Bank.deployed().then(function(result) {
+  //     bank = result;
+  //   });
+  //   this.setState({ bankAddress: bank.address });
+  //   console.log(bank.address);
   // }
 
   async connect() {
@@ -97,12 +114,12 @@ class App extends Component {
 
   }
 
-  deposit() {
+  deposit(amount) {
     // TO DO
     console.log('deposit');
   }
 
-  withdraw() {
+  withdraw(amount) {
     // TO DO
     console.log('withdraw');
   }

@@ -1,4 +1,4 @@
-pragma solidity ^0.8.4;
+pragma solidity >=0.4.22 <0.9.0;
 
 /**
  * Implements the BNB-Bank
@@ -6,37 +6,54 @@ pragma solidity ^0.8.4;
  */
 contract Bank {
 
-    // Stores user balance <address, balance>
-    mapping(address => uint256) public accounts;
+    address public owner;
+    mapping(address => uint256) private accounts;
+
+    event LogDeposit(address indexed account, uint256 amount);
+    event LogWithdrawal(address indexed account, uint256 amount);
+
+
+    /**
+     * Create the Bank contract
+     */
+    constructor () {
+        owner = msg.sender;
+    }
+
 
     /**
      * Deposit funds in the bank
      * A check for adequate user funds in MetaMask will be conducted client side
      */
-    function deposit(uint256 amount) public returns(uint256){
-        // if (accounts[tx.origin].isEntity) throw;
-        uint256 balance = accounts[tx.origin] + amount;  // returns 0 if key is not in mapping
-        accounts[tx.origin] = balance;
-        return balance;
-        
+    function deposit() public payable returns(uint256) {
+        accounts[msg.sender] += msg.value;  // returns 0 if key is not in mapping 
+        emit LogDeposit(msg.sender, msg.value);      
+        return accounts[msg.sender];
     }
+
 
     /**
      * Withdraw funds from the bank.
-     * Check for sufficient funds is done client side
      */
-    function withdraw(uint256 amount) public returns(uint256) {
-        require(accounts[tx.origin] >= amount, 'Insufficient funds');
-        uint balance = accounts[tx.origin] - amount;
-        accounts[tx.origin] = balance;
-        return balance;
+    function withdraw(uint256 _amount) public payable returns(uint256) {
+        require(accounts[msg.sender] >= _amount, 'Insufficient funds');
+
+        // Check funds were withdrawn
+        (bool sent, ) = msg.sender.call{value: _amount}("");
+        require(sent, "Failed to send Ether");
+
+        // Deduct from bank
+        accounts[msg.sender] -= _amount;
+        emit LogWithdrawal(msg.sender, msg.value);      
+        return accounts[msg.sender];
     }
+
 
     /**
      * Get a user's balance
      */
-    function getBalance() public view returns(uint balance) {
-        return accounts[tx.origin];
+    function getBalance() public view returns(uint256) {
+        return accounts[msg.sender];
     }
 
 }
