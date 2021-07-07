@@ -1,7 +1,8 @@
 const Bank = artifacts.require('./Bank.sol');
 
 /**
- * Testing Bank contract functionality
+ * Testing Bank contract functionality.
+ * Note, MetaMask also provides balance checks before depositing funds
  */
 contract('Bank', function(accounts) {
 
@@ -92,7 +93,7 @@ contract('Bank', function(accounts) {
 
         // Withdraw 1 Ether
         const amount = web3.utils.toWei('1', 'ether');
-        await bank.withdraw(web3.utils.toBN(amount), { from: alice});
+        await bank.withdraw(web3.utils.toBN(amount), { from: alice });
         
         // Get the bank balance after the transaction
         balanceAfter = await bank.getBalance({ from: alice })

@@ -1,4 +1,4 @@
-pragma solidity >=0.4.22 <0.9.0;
+pragma solidity >=0.6.0 <0.9.0;
 
 /**
  * Implements the BNB-Bank
@@ -22,10 +22,11 @@ contract Bank {
 
 
     /**
-     * Deposit funds in the bank
-     * A check for adequate user funds in MetaMask will be conducted client side
+     * Deposit funds in the bank.
+     * A check for adequate user funds in MetaMask will be conducted client side.
      */
     function deposit() public payable returns(uint256) {
+        // require(accounts[msg.sender] == 0, 'Account holder already has a deposit.');
         accounts[msg.sender] += msg.value;  // returns 0 if key is not in mapping 
         emit LogDeposit(msg.sender, msg.value);      
         return accounts[msg.sender];
@@ -36,15 +37,17 @@ contract Bank {
      * Withdraw funds from the bank.
      */
     function withdraw(uint256 _amount) public payable returns(uint256) {
+        
         require(accounts[msg.sender] >= _amount, 'Insufficient funds');
 
-        // Check funds were withdrawn
-        (bool sent, ) = msg.sender.call{value: _amount}("");
-        require(sent, "Failed to send Ether");
+        // // Check funds were withdrawn
+        // (bool sent, ) = msg.sender.call{value: _amount}("");
+        // require(sent, "Failed to send Ether");
 
         // Deduct from bank
         accounts[msg.sender] -= _amount;
-        emit LogWithdrawal(msg.sender, msg.value);      
+        payable(msg.sender).transfer(_amount);
+        // emit LogWithdrawal(msg.sender, msg.value);      
         return accounts[msg.sender];
     }
 

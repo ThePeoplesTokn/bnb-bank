@@ -16,12 +16,15 @@ class App extends Component {
     this.state = {
       web3: '',
       account: '',
-      token: null,
-      dbank: '0x643F3c36890A20620efEAaEae9B1e8F7D8Ba3638',
-      balance: 0,
+      walletBalance: 0,
+      bankBalance: 0,  
       bankAddress: null,
-      network: ''
-    }
+      bank: null,
+      token: null,
+      network: null
+    };
+    // this.deposit = this.deposit.bind(this);
+    // this.withdraw = this.withdraw.bind(this);
   }
   
   componentWillMount() {
@@ -32,7 +35,7 @@ class App extends Component {
   /**
    * Load blockchain data from MetaMask
    */
-  async loadBlockChainData() {
+  loadBlockChainData = async () => {
 
     const web3 = new Web3(Web3.givenProvider || "http://localhost:7545");
     this.setState({ web3: web3 });
@@ -41,6 +44,25 @@ class App extends Component {
     console.log(network);
     // console.log(this.state.web3);
     try {
+
+      // Load Bank contract - get balance for the user
+      const networkId = await web3.eth.net.getId();
+      console.log('networkId', networkId);
+      const deployedNetwork = Bank.networks[networkId];
+      if (deployedNetwork) {
+        console.log('deployedNetwork', deployedNetwork); // maybe some error handling here fo different network
+        const address = deployedNetwork.address  
+        console.log('address', address);
+        this.setState({ bankAddress: address });
+        this.setState({ bank: new web3.eth.Contract(
+          Bank.abi,
+          deployedNetwork && address,
+        )});
+      } else {
+        window.alert('MetaMask is using a different network'); // Maybe a different message here
+      }
+
+
       this.connect(); // if user is logged in
     } 
     catch(error){
@@ -52,59 +74,41 @@ class App extends Component {
     // ethereum.on('chainChanged', (_chainId) => window.location.reload());
 
 
-    // Load Bank contract - get balance for the user
-    const networkId = await web3.eth.net.getId();
-    console.log('networkId', networkId);
-    const deployedNetwork = Bank.networks[networkId];
-    if (deployedNetwork) {
-      console.log('deployedNetwork', deployedNetwork); // maybe some error handling here fo different network
-      const address = deployedNetwork.address
-      console.log('address', address);
-      this.setState({ bankAddress: address });
-      this.setState({ bank: new web3.eth.Contract(
-        Bank.abi,
-        deployedNetwork && address,
-      )});
-    } else {
-      window.alert('MetaMask is using a different network'); // Maybe a different message here
-    }
     
+    
+
+    // TODO on network switch reload page...
+    // // Handle changes in network...
+    // function handleChainChanged(_chainId) {
+    //   // Reload page on chain changes
+    //   console.log('chain changed - reload');
+    //   console.log(_chainId);
+    //   window.location.reload();
+    // }
+    // const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    // window.ethereum.on('chainChanged', handleChainChanged(chainId));
     
 
   }
 
 
-  /**
-   * Get the Bank contract address - hard coded for now
-   */
-  // async getBank(){
-  //   let bank;
-  //   Bank.deployed().then(function(result) {
-  //     bank = result;
-  //   });
-  //   this.setState({ bankAddress: bank.address });
-  //   console.log(bank.address);
-  // }
-
-  async connect() {
-    console.log(this.state.web3);
-    console.log('connect');
+  connect = async() => {
     const accounts = await this.state.web3.eth.getAccounts();
-    console.log(accounts[0]);
+    //const accounts = ['0xCEFDEC96d09366EA95Bb192195Ab5Ae4fa1e765D']
     this.setState({ account: accounts[0] });
-    var balance = this.state.web3.utils.fromWei(await this.state.web3.eth.getBalance(accounts[0]), 'ether');
-    balance = Math.round(balance * 100) / 100;
-    console.log(balance);
-    this.setState({ balance: balance });
-    
+    // var balance = this.state.web3.utils.fromWei(await this.state.web3.eth.getBalance(accounts[0]), 'ether');
+    // balance = Math.round(balance * 100) / 100;
+    // this.setState({ balance: balance });
+    this.updateBalance();
   }
 
-  async login () {
-    console.log('login');
+  login = async() => {
     if (window.ethereum) {
-      console.log('ethereum');
       await window.ethereum.send('eth_requestAccounts');
       window.web3 = new Web3(window.ethereum);
+      
+     
+
       this.connect();
     } 
     else {
@@ -114,14 +118,51 @@ class App extends Component {
 
   }
 
-  deposit(amount) {
+  deposit = async() => {
     // TO DO
+    // use ganache account for now
+    const { web3, bank } = this.state;
+    const deposit = web3.utils.toWei('1', 'ether');
+    // Deposit 1 Eth
+    console.log(deposit);
+    const receipt = await bank.methods.deposit().send({ 
+          from: this.state.account, 
+          value: deposit
+    });
+    this.updateBalance();
+    console.log(receipt);
     console.log('deposit');
   }
 
-  withdraw(amount) {
+  withdraw = async() => {
     // TO DO
-    console.log('withdraw');
+    // use ganache account for now
+    const { web3, bank, account } = this.state;
+    // WWithdraw 1 Eth
+    const amount = web3.utils.toWei('1', 'ether');
+    const receipt = await bank.methods.withdraw(amount).send({ 
+      from: account,
+      value: amount
+    });
+    console.log('Withdraw:', receipt);
+    this.updateBalance();
+    console.log('done');
+  }
+
+  updateBalance = async() => {
+    const { web3, bank, account } = this.state;
+    let walletBalance, bankBalance;
+
+    // Get wallet balance
+    walletBalance = web3.utils.fromWei(await web3.eth.getBalance(account), 'ether');
+    walletBalance = Math.round(walletBalance * 100) / 100;
+    this.setState({ walletBalance: walletBalance });
+
+    // Bet BNB-Bank balance
+    bankBalance = await bank.methods.getBalance().call({ from: account });
+    bankBalance = web3.utils.fromWei(bankBalance, 'ether');
+    bankBalance = Math.round(bankBalance * 100) / 100;
+    this.setState({ bankBalance: bankBalance });
   }
 
   getToken() {
@@ -133,17 +174,20 @@ class App extends Component {
   render() {
 
     const isConnected = this.state.account === '' ? false : true;
-    let connect, account, balance;
+    let connect, account, walletBalance, bankBalance;
     if (isConnected) {
       console.log(true);
       connect = <p>Connected</p>
-      account = <p><b>Account: </b>{this.state.account} BNB</p>
-      balance = <p><b>Balance: </b>{this.state.balance} BNB</p>
+      account = <p><b>Account: </b>{this.state.account}</p>
+      walletBalance = <p><b>Wallet: </b>{this.state.walletBalance} BNB</p>
+      bankBalance = <p><b>BNB balance: </b>{this.state.bankBalance} BNB</p>
+
     } else {
       console.log(false);
       connect = <button onClick={this.login}>Connect</button>
       account = <div></div>
-      balance = <div></div>
+      walletBalance = <div></div>
+      bankBalance = <div></div>
     }
 
     return (
@@ -156,26 +200,21 @@ class App extends Component {
           <h1>Welcome to BNB Bank</h1>
 
         </div>
-        
-        {/* <div className="network">
-          <p><b>Network: </b>{this.state.network}</p>
-        </div> */}
-
 
         <div className="connect">
-          {/* <ConnectButton 
-            onClick={this.login}
-            /> */}
             {connect}
         </div>
-
 
         <div className="account-number">
           {account}
         </div>
 
-        <div className="balance-display">
-          {balance}
+        <div className="wallet-balance-display">
+          {walletBalance}
+        </div>
+
+        <div className="bank-balance-display">
+          {bankBalance}
         </div>
 
         <div className="transactions">
@@ -198,12 +237,5 @@ class App extends Component {
     );
   }
 }
-
-
-// function ConnectButton(props){
-//   if (!props.isConnected){
-//     <button className="connect-button" onClick={props.onClick}>Connect</button>
-//   }
-// }
 
 export default App;
