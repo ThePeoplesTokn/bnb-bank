@@ -36,7 +36,7 @@ contract Bank {
     /**
      * Withdraw funds from the bank.
      */
-    function withdraw(uint256 _amount) public payable returns(uint256) {
+    function withdraw(uint256 _amount) public returns(uint256) {
         
         require(accounts[msg.sender] >= _amount, 'Insufficient funds');
 
@@ -46,7 +46,8 @@ contract Bank {
 
         // Deduct from bank
         accounts[msg.sender] -= _amount;
-        payable(msg.sender).transfer(_amount);
+        address payable receiver = payable(msg.sender); 
+        receiver.transfer(_amount);
         // emit LogWithdrawal(msg.sender, msg.value);      
         return accounts[msg.sender];
     }

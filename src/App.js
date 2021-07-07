@@ -42,6 +42,7 @@ class App extends Component {
     const network = await web3.eth.net.getNetworkType()
     this.setState({ network: network });
     console.log(network);
+    console.log(web3.eth.symbol)
     // console.log(this.state.web3);
     try {
 
@@ -141,8 +142,7 @@ class App extends Component {
     // WWithdraw 1 Eth
     const amount = web3.utils.toWei('1', 'ether');
     const receipt = await bank.methods.withdraw(amount).send({ 
-      from: account,
-      value: amount
+      from: account
     });
     console.log('Withdraw:', receipt);
     this.updateBalance();
