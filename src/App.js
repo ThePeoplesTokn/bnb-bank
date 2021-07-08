@@ -59,12 +59,25 @@ class App extends Component {
           Bank.abi,
           deployedNetwork && address,
         )});
+
+        this.connect(); // if user is logged in
+
       } else {
-        window.alert('MetaMask is using a different network'); // Maybe a different message here
+        // Prompt network change
+        console.log('change network');
+        console.log(Object.keys(Bank.networks)[0]);
+        let chainId = Object.keys(Bank.networks)[0];
+        chainId = web3.utils.toHex(chainId);
+        console.log(chainId);
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: chainId }], 
+        });
+        //window.alert('MetaMask is using a different network'); // Maybe a different message here
       }
 
 
-      this.connect(); // if user is logged in
+      
     } 
     catch(error){
       console.log('user is not logged in');
@@ -108,8 +121,6 @@ class App extends Component {
       await window.ethereum.send('eth_requestAccounts');
       window.web3 = new Web3(window.ethereum);
       
-     
-
       this.connect();
     } 
     else {
@@ -119,34 +130,44 @@ class App extends Component {
 
   }
 
-  deposit = async() => {
+  deposit = async(amount) => {
     // TO DO
     // use ganache account for now
-    const { web3, bank } = this.state;
-    const deposit = web3.utils.toWei('1', 'ether');
+    const { web3, bank, account } = this.state;
+    // const deposit = web3.utils.toWei('1', 'ether');
     // Deposit 1 Eth
-    console.log(deposit);
+    console.log(amount);
+    const value = web3.utils.toWei(amount, 'ether');
     const receipt = await bank.methods.deposit().send({ 
-          from: this.state.account, 
-          value: deposit
+          from: account, 
+          value: value
+    }).catch((error) => {
+      console.log('Deposit error: ', error);
+      return false;
     });
     this.updateBalance();
     console.log(receipt);
     console.log('deposit');
+    return true;
   }
 
-  withdraw = async() => {
+  withdraw = async(amount) => {
     // TO DO
     // use ganache account for now
     const { web3, bank, account } = this.state;
     // WWithdraw 1 Eth
-    const amount = web3.utils.toWei('1', 'ether');
-    const receipt = await bank.methods.withdraw(amount).send({ 
+    // const amount = web3.utils.toWei('1', 'ether');
+    const value = web3.utils.toWei(amount, 'ether');
+    const receipt = await bank.methods.withdraw(value).send({ 
       from: account
+    }).catch((error) => {
+      console.log('Withdraw error: ', error);
+      return false;
     });
     console.log('Withdraw:', receipt);
     this.updateBalance();
     console.log('done');
+    return true;
   }
 
   updateBalance = async() => {
@@ -165,9 +186,11 @@ class App extends Component {
     this.setState({ bankBalance: bankBalance });
   }
 
-  getToken() {
+  getToken(i) {
     // TO DO
+    console.log(i);
     console.log('token');
+    return true;
   }
 
 
@@ -218,22 +241,73 @@ class App extends Component {
         </div>
 
         <div className="transactions">
-          
-          <div className="widthdraw">
-            <button onClick={this.withdraw}>widthdraw</button>
-          </div>
 
-          <div className="deposit">
-            <button onClick={this.deposit}>deposit</button>
-          </div>
+        <TransactionInput
+            transactionType={'Deposit'}
+            onClick={this.deposit}
+          />
 
+          <TransactionInput
+            transactionType={'Withdraw'}
+            onClick={this.withdraw}
+          />
+
+          <TransactionInput
+            transactionType={'Get Token'}
+            onClick={this.getToken}
+          />
+         
         </div>
-
-        <div className="add-token">
-          <button onClick={this.getToken}>Get token</button>
-        </div>
-
+        
       </div>
+    );
+  }
+}
+
+
+/**
+ * Component handles user input for transaction requests
+ */
+class TransactionInput extends Component {
+
+  constructor(props){
+    super(props);
+    this.state = {
+      transactionValue: ''
+    };
+  }
+
+  /**
+   * Call one of the App transaction methods passed in props, passing valid input as argument
+   */
+  handleClick = () => {
+    const success = this.props.onClick(this.state.transactionValue);
+    if (success) {
+      this.setState({ transactionValue: '' });
+    }
+  }
+
+  /**
+   * Check for valid numerical input
+   * @param {*} e - input change event
+   */
+  handleChange = (e) => {
+    const regCheck = /^\d+(\.\d{0,18})?$/;
+    const value = e.target.value;
+    if (value === '' || regCheck.test(value)) {
+      this.setState({ transactionValue: e.target.value })
+    } 
+  }
+
+  render() {
+
+    return (
+
+      <div className="transaction-input">
+        <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
+        <input className="transaction-input-field" onChange={this.handleChange} type="text" value={this.state.transactionValue} placeholder="amount..."></input>
+      </div>
+
     );
   }
 }
