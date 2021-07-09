@@ -88,9 +88,6 @@ class App extends Component {
     // ethereum.on('chainChanged', (_chainId) => window.location.reload());
 
 
-    
-    
-
     // TODO on network switch reload page...
     // // Handle changes in network...
     // function handleChainChanged(_chainId) {
@@ -131,13 +128,11 @@ class App extends Component {
   }
 
   deposit = async(amount) => {
-    // TO DO
-    // use ganache account for now
+
     const { web3, bank, account } = this.state;
-    // const deposit = web3.utils.toWei('1', 'ether');
-    // Deposit 1 Eth
-    console.log(amount);
     const value = web3.utils.toWei(amount, 'ether');
+
+    // Send Request
     const receipt = await bank.methods.deposit().send({ 
           from: account, 
           value: value
@@ -145,25 +140,46 @@ class App extends Component {
       console.log('Deposit error: ', error);
       return false;
     });
+
+    // Update balance in window
     this.updateBalance();
-    console.log(receipt);
-    console.log('deposit');
     return true;
   }
 
   withdraw = async(amount) => {
-    // TO DO
-    // use ganache account for now
+
     const { web3, bank, account } = this.state;
-    // WWithdraw 1 Eth
-    // const amount = web3.utils.toWei('1', 'ether');
     const value = web3.utils.toWei(amount, 'ether');
+
+    // Send request
     const receipt = await bank.methods.withdraw(value).send({ 
       from: account
     }).catch((error) => {
       console.log('Withdraw error: ', error);
       return false;
     });
+
+    // Update balance in window
+    this.updateBalance();
+    return true;
+  }
+
+
+  withdrawWithToken = async(amount) => {
+
+    const { web3, bank, account } = this.state;
+    const value = web3.utils.toWei(amount, 'ether');
+
+    console.log('withdrawing');
+    // Send request
+    const receipt = await bank.methods.withdrawWithInterest(value).send({ 
+      from: account
+    }).catch((error) => {
+      console.log('Withdraw error: ', error);
+      return false;
+    });
+    
+    // Update balance in window
     console.log('Withdraw:', receipt);
     this.updateBalance();
     console.log('done');
@@ -186,13 +202,6 @@ class App extends Component {
     this.setState({ bankBalance: bankBalance });
   }
 
-  getToken(i) {
-    // TO DO
-    console.log(i);
-    console.log('token');
-    return true;
-  }
-
 
   render() {
 
@@ -201,9 +210,9 @@ class App extends Component {
     if (isConnected) {
       console.log(true);
       connect = <p>Connected</p>
-      account = <p><b>Account: </b>{this.state.account}</p>
-      walletBalance = <p><b>Wallet: </b>{this.state.walletBalance} BNB</p>
-      bankBalance = <p><b>BNB balance: </b>{this.state.bankBalance} BNB</p>
+      account = <p><b>Account: </b><span className="numeric-field">{this.state.account}</span></p>
+      walletBalance = <p><b>Wallet: </b><span className="numeric-field">{this.state.walletBalance}</span> BNB</p>
+      bankBalance = <p><b>BNB balance: </b><span className="numeric-field">{this.state.bankBalance}</span> BNB</p>
 
     } else {
       console.log(false);
@@ -242,7 +251,7 @@ class App extends Component {
 
         <div className="transactions">
 
-        <TransactionInput
+          <TransactionInput
             transactionType={'Deposit'}
             onClick={this.deposit}
           />
@@ -254,11 +263,11 @@ class App extends Component {
 
           <TransactionInput
             transactionType={'Get Token'}
-            onClick={this.getToken}
+            onClick={this.withdrawWithToken}
           />
          
         </div>
-        
+
       </div>
     );
   }
@@ -281,9 +290,13 @@ class TransactionInput extends Component {
    * Call one of the App transaction methods passed in props, passing valid input as argument
    */
   handleClick = () => {
-    const success = this.props.onClick(this.state.transactionValue);
-    if (success) {
-      this.setState({ transactionValue: '' });
+    const value = this.state.transactionValue;
+    if (value) {
+      const success = this.props.onClick(value);
+      // Remove number from input field if transaction is successful
+      if (success) {
+        this.setState({ transactionValue: '' });
+      }
     }
   }
 
