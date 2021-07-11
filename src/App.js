@@ -241,9 +241,8 @@ class App extends Component {
 
         main = <div className="main">
 
-                  <p>Connected</p>
-                  <p><b>Account: </b><span className="numeric-field">{this.state.account}</span></p>
-                  <p><b>Wallet: </b><span className="numeric-field">{this.state.walletBalance}</span> BNB</p>
+                  <p><b>Your Address: </b><span className="numeric-field">{this.state.account}</span></p>
+                  {/* <p><b>Wallet: </b><span className="numeric-field">{this.state.walletBalance}</span> BNB</p> */}
                   <p><b>BNB balance: </b><span className="numeric-field">{this.state.bankBalance}</span> BNB</p>
                   
                   <div className="transactions">
@@ -318,7 +317,7 @@ class TransactionInput extends Component {
    */
   handleClick = () => {
     const value = this.state.transactionValue;
-    if (value === '') {
+    if (value === '' || value == 0) {
       this.setState({ msg: 'Please enter an amount'});
     } else if (value) {
       this.setState({ msg: ''});
@@ -332,11 +331,11 @@ class TransactionInput extends Component {
   }
 
   /**
-   * Check for valid numerical input
+   * Check for valid numerical input, numbers are limited to two decimal places.
    * @param {*} e - input change event
    */
   handleChange = (e) => {
-    const regCheck = /^\d+(\.\d{0,18})?$/;
+    const regCheck = /^\d+(\.\d{0,2})?$/;
     const value = e.target.value;
     if (value === '' || regCheck.test(value)) {
       this.setState({ transactionValue: e.target.value })
