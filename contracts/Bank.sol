@@ -66,7 +66,7 @@ contract Bank {
         receiver.transfer(_amount);     
         
         // Mint a new token and transfer to sender's account
-        token.mint(msg.sender, 1);
+        token.mint(msg.sender, 1**10);
         return accounts[msg.sender];
     }
 

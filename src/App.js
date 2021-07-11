@@ -1,14 +1,12 @@
 import React, {Component} from 'react';
-// import ReactDOM from 'react-dom';
+import { Container, Row, Col } from 'react-bootstrap';
 import './App.css';
-// import detectEthereumProvider from '@metamask/detect-provider';
-// import MetaMaskOnboarding from '@metamask/onboarding';
 import Web3 from 'web3';
 import Bank from './abis/Bank.json';
 
-// const currentUrl = new URL(window.location.href)
-// const forwarderOrigin = currentUrl.hostname === 'localhost' ? 'http://localhost:9010': undefined;
-
+/**
+ * Main app component
+ */
 class App extends Component {
 
   constructor(props) {
@@ -21,111 +19,128 @@ class App extends Component {
       bankAddress: null,
       bank: null,
       token: null,
-      network: null
+      network: null,
+      connected: false
     };
-    // this.deposit = this.deposit.bind(this);
-    // this.withdraw = this.withdraw.bind(this);
   }
   
   componentWillMount() {
-    this.loadBlockChainData();
-    // this.getBank();
+    this.connect();
   }
+
+
+  /**
+   * Checks if a user is logged into MetaMask.
+   * If logged in loads block chain data.
+   * Else, waits for the user to choose to connect with connect button - no unprovoked pop-ups.
+   */
+  connect = async() => {
+
+    try {
+      const connected = window.ethereum.isConnected();
+      if (! connected) {
+        console.log('Connect: User is not logged in');
+        // User is not logged in - show connect button
+      } else {
+        console.log('Connect: User is logged in');
+        // User is logged in - load block chain data
+        this.loadBlockChainData();
+      }
+    } catch(error) {
+      console.log('Connect error:', error);
+      // User is not logged in - show connect button
+    }
+    
+  }
+
 
   /**
    * Load blockchain data from MetaMask
    */
   loadBlockChainData = async () => {
 
-    const web3 = new Web3(Web3.givenProvider || "http://localhost:7545");
-    this.setState({ web3: web3 });
-    const network = await web3.eth.net.getNetworkType()
-    this.setState({ network: network });
-    console.log(network);
-    console.log(web3.eth.symbol)
-    // console.log(this.state.web3);
-    try {
+    if (window.ethereum) {
+
+      // Calls MetaMask pop-up
+      await window.ethereum.send('eth_requestAccounts');  
+      window.web3 = new Web3(window.ethereum);
+      this.setState({ web3: window.web3 });
+      this.setState({ connected: true });
+
+      // Set event handler to reload page on network changes
+      window.ethereum.on('chainChanged', (chainId) => {
+        window.location.reload();
+      });
 
       // Load Bank contract - get balance for the user
-      const networkId = await web3.eth.net.getId();
+      let networkId = await window.web3.eth.net.getId();
       console.log('networkId', networkId);
-      const deployedNetwork = Bank.networks[networkId];
+      let deployedNetwork = Bank.networks[networkId];
+      if (!deployedNetwork) {
+
+        console.log('network change required');
+        try {
+          // Prompt network change
+          console.log('change network');
+          console.log(Object.keys(Bank.networks)[0]);
+          let chainId = Object.keys(Bank.networks)[0];
+          chainId = window.web3.utils.toHex(chainId);
+          console.log(chainId);
+  
+          // Add the TestNet chain if necessary
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: chainId,
+              chainName: "Ganache",
+              rpcUrls: ["http://127.0.0.1:7545"],
+              nativeCurrency: {
+                name: "ETHER",
+                symbol: "ETH",
+                decimals: 18,
+              },
+              blockExplorerUrls: ["http://127.0.0.1:7545"],
+            }]
+          });
+
+          // Switch chain
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: chainId }], 
+          });
+
+          // reassign network variables
+          networkId = await window.web3.eth.net.getId();
+          console.log('networkId', networkId);
+          deployedNetwork = Bank.networks[networkId];
+ 
+        } catch (error) {
+          console.log('Please change network with MetaMask');
+        }
+      } 
       if (deployedNetwork) {
-        console.log('deployedNetwork', deployedNetwork); // maybe some error handling here fo different network
+        console.log('deployedNetwork', deployedNetwork); 
         const address = deployedNetwork.address  
         console.log('address', address);
         this.setState({ bankAddress: address });
-        this.setState({ bank: new web3.eth.Contract(
+        this.setState({ bank: new window.web3.eth.Contract(
           Bank.abi,
           deployedNetwork && address,
         )});
 
-        this.connect(); // if user is logged in
-
-      } else {
-        // Prompt network change
-        console.log('change network');
-        console.log(Object.keys(Bank.networks)[0]);
-        let chainId = Object.keys(Bank.networks)[0];
-        chainId = web3.utils.toHex(chainId);
-        console.log(chainId);
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: chainId }], 
-        });
-        //window.alert('MetaMask is using a different network'); // Maybe a different message here
+        // Get user's address and update user's balance
+        const accounts = await this.state.web3.eth.getAccounts();
+        this.setState({ account: accounts[0] });
+        this.updateBalance();
+        
       }
-
-
-      
-    } 
-    catch(error){
-      console.log('user is not logged in');
-      // show connect button
     }
-
-    //ethereum.on('chainChanged', handler: (chainId: string) => void);
-    // ethereum.on('chainChanged', (_chainId) => window.location.reload());
-
-
-    // TODO on network switch reload page...
-    // // Handle changes in network...
-    // function handleChainChanged(_chainId) {
-    //   // Reload page on chain changes
-    //   console.log('chain changed - reload');
-    //   console.log(_chainId);
-    //   window.location.reload();
-    // }
-    // const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-    // window.ethereum.on('chainChanged', handleChainChanged(chainId));
-    
-
-  }
-
-
-  connect = async() => {
-    const accounts = await this.state.web3.eth.getAccounts();
-    //const accounts = ['0xCEFDEC96d09366EA95Bb192195Ab5Ae4fa1e765D']
-    this.setState({ account: accounts[0] });
-    // var balance = this.state.web3.utils.fromWei(await this.state.web3.eth.getBalance(accounts[0]), 'ether');
-    // balance = Math.round(balance * 100) / 100;
-    // this.setState({ balance: balance });
-    this.updateBalance();
-  }
-
-  login = async() => {
-    if (window.ethereum) {
-      await window.ethereum.send('eth_requestAccounts');
-      window.web3 = new Web3(window.ethereum);
-      
-      this.connect();
-    } 
     else {
-      console.log('no ethereum detected');
-      window.alert('Please install MetaMask to continue');
+      console.log('Please install MetaMask to continue');
     }
 
   }
+
 
   deposit = async(amount) => {
 
@@ -186,6 +201,9 @@ class App extends Component {
     return true;
   }
 
+  /**
+   * Upadates the user's balance display after a transaction.
+   */
   updateBalance = async() => {
     const { web3, bank, account } = this.state;
     let walletBalance, bankBalance;
@@ -205,25 +223,67 @@ class App extends Component {
 
   render() {
 
-    const isConnected = this.state.account === '' ? false : true;
-    let connect, account, walletBalance, bankBalance;
-    if (isConnected) {
+    let main;
+    if (this.state.connected) {
       console.log(true);
-      connect = <p>Connected</p>
-      account = <p><b>Account: </b><span className="numeric-field">{this.state.account}</span></p>
-      walletBalance = <p><b>Wallet: </b><span className="numeric-field">{this.state.walletBalance}</span> BNB</p>
-      bankBalance = <p><b>BNB balance: </b><span className="numeric-field">{this.state.bankBalance}</span> BNB</p>
+
+      if (!this.state.bankAddress) {
+
+        main = <div className="main">
+
+                <p>Please change network in MetaMask</p>
+
+               </div>
+
+      }
+      else {
+
+
+        main = <div className="main">
+
+                  <p>Connected</p>
+                  <p><b>Account: </b><span className="numeric-field">{this.state.account}</span></p>
+                  <p><b>Wallet: </b><span className="numeric-field">{this.state.walletBalance}</span> BNB</p>
+                  <p><b>BNB balance: </b><span className="numeric-field">{this.state.bankBalance}</span> BNB</p>
+                  
+                  <div className="transactions">
+
+                    <TransactionInput
+                      transactionType={'Deposit'}
+                      onClick={this.deposit}
+                    />
+
+                    <TransactionInput
+                      transactionType={'Withdraw'}
+                      onClick={this.withdraw}
+                    />
+
+                    <TransactionInput
+                      transactionType={'Get Token'}
+                      onClick={this.withdrawWithToken}
+                    />
+        
+                  </div>
+
+                </div>
+      }
 
     } else {
       console.log(false);
-      connect = <button onClick={this.login}>Connect</button>
-      account = <div></div>
-      walletBalance = <div></div>
-      bankBalance = <div></div>
+      main = <div className="main">
+
+                <p>Log in with MetaMask to continue.</p>
+
+                <button id="connect-button" onClick={this.loadBlockChainData}>Connect</button>
+
+                <p>Don't have MetaMask installed? Get it <a href="https://metamask.io/" target="_blank" rel="noopener noreferrer">here</a>.</p>
+             
+              </div>
     }
 
     return (
       <div className="App">
+
         
         <div className="app-header">
 
@@ -233,40 +293,7 @@ class App extends Component {
 
         </div>
 
-        <div className="connect">
-            {connect}
-        </div>
-
-        <div className="account-number">
-          {account}
-        </div>
-
-        <div className="wallet-balance-display">
-          {walletBalance}
-        </div>
-
-        <div className="bank-balance-display">
-          {bankBalance}
-        </div>
-
-        <div className="transactions">
-
-          <TransactionInput
-            transactionType={'Deposit'}
-            onClick={this.deposit}
-          />
-
-          <TransactionInput
-            transactionType={'Withdraw'}
-            onClick={this.withdraw}
-          />
-
-          <TransactionInput
-            transactionType={'Get Token'}
-            onClick={this.withdrawWithToken}
-          />
-         
-        </div>
+        {main}
 
       </div>
     );
@@ -291,13 +318,17 @@ class TransactionInput extends Component {
    */
   handleClick = () => {
     const value = this.state.transactionValue;
-    if (value) {
+    if (value === '') {
+      this.setState({ msg: 'Please enter an amount'});
+    } else if (value) {
+      this.setState({ msg: ''});
       const success = this.props.onClick(value);
       // Remove number from input field if transaction is successful
       if (success) {
         this.setState({ transactionValue: '' });
       }
     }
+    
   }
 
   /**
@@ -319,8 +350,10 @@ class TransactionInput extends Component {
       <div className="transaction-input">
         <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
         <input className="transaction-input-field" onChange={this.handleChange} type="text" value={this.state.transactionValue} placeholder="amount..."></input>
+        <span className="error-message">{this.state.msg}</span>
       </div>
-
+     
+      
     );
   }
 }
