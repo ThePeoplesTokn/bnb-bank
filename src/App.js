@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
+import { Container, Row, Col, Tab, Nav } from 'react-bootstrap';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import Web3 from 'web3';
 import Bank from './abis/Bank.json';
@@ -178,7 +179,7 @@ class App extends Component {
 
     const { bank, account } = this.state;
 
-    if (method === 'Withdraw') {
+    if (! method) {
 
       console.log('withdraw');
       // Withdraw
@@ -251,26 +252,50 @@ class App extends Component {
                   {/* <p><b>Wallet: </b><span className="numeric-field">{this.state.walletBalance}</span> BNB</p> */}
                   <p><b>BNB balance: </b><span className="numeric-field">{this.state.bankBalance}</span> BNB</p>
                   
-                  <div className="transactions">
+                  <div id="transactions">
 
-                    <TransactionInput
-                      transactionType={'Deposit'}
-                      onClick={this.deposit}
-                      fixedInput={false}
-                    />
+                    <Tab.Container id="transaction-selection" defaultActiveKey="first">
+                      <Row>
+                        <Col sm={{ span: 2, offset: 4 }}>
+                          <Nav  variant="pills" className="flex-column">
+                            <Nav.Item>
+                              <Nav.Link className="tabs" eventKey="first">Deposit</Nav.Link>
+                            </Nav.Item>
+                            <Nav.Item>
+                              <Nav.Link className="tabs" eventKey="second">Withdraw</Nav.Link>
+                            </Nav.Item>
+                          </Nav>
+                        </Col>
+                        <Col sm={2}>
+                          <Tab.Content>
+                            <Tab.Pane eventKey="first">
 
-                    <TransactionInput
-                      transactionType={'Withdraw'}
-                      onClick={this.withdraw}
-                      fixedInput={true}
-                    />
+                              <DepositInput className="top"
+                                transactionType={'Deposit'}
+                                onClick={this.deposit}
+                              />
 
-                    <TransactionInput
-                      transactionType={'Withdraw with Token'}
-                      onClick={this.withdraw}
-                      fixedInput={true}
-                    />
-        
+                            </Tab.Pane>
+                            <Tab.Pane eventKey="second">
+
+                              <WithdrawInput className="top"
+                                transactionType={'Withdraw'}
+                                onClick={this.withdraw}
+                                option={false}
+                                />
+
+                              <WithdrawInput
+                                transactionType={'Withdraw with Token'}
+                                onClick={this.withdraw}
+                                option={true}
+                                />
+
+                            </Tab.Pane>
+                          </Tab.Content>
+                        </Col>
+                      </Row>
+                    </Tab.Container>
+          
                   </div>
 
                 </div>
@@ -310,9 +335,9 @@ class App extends Component {
 
 
 /**
- * Component handles user input for transaction requests
+ * Provides a UI for deposit requests
  */
-class TransactionInput extends Component {
+class DepositInput extends Component {
 
   constructor(props){
     super(props);
@@ -325,10 +350,7 @@ class TransactionInput extends Component {
    * Call one of the App transaction methods passed in props, passing valid input as argument
    */
   handleClick = () => {
-    let value;
-    if (this.props.fixedInput) value = this.props.transactionType;
-    else value = this.state.transactionValue;
-    console.log('value:', value);
+    const value = this.state.transactionValue;
     if (value === '' || value == 0) {
       this.setState({ msg: 'Please enter an amount'});
     } else if (value) {
@@ -339,9 +361,6 @@ class TransactionInput extends Component {
         this.setState({ transactionValue: '' });
       }
     }
-  
-    
-    
   }
 
   /**
@@ -357,30 +376,42 @@ class TransactionInput extends Component {
   }
 
   render() {
-
-    let displayInput;
-    if (this.props.fixedInput) {
-
-      displayInput = <div className="transaction-input">
-                      <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
-                      <input className="transaction-input-field" onChange={this.handleChange} type="hidden" value={this.state.transactionType} placeholder="amount..."></input>
-                      <span className="error-message">{this.state.msg}</span>
-                    </div>
-    } else {
-
-      displayInput = <div className="transaction-input">
-                        <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
-                        <input className="transaction-input-field" onChange={this.handleChange} type="text" value={this.state.transactionValue} placeholder="amount..."></input>
-                        <span className="error-message">{this.state.msg}</span>
-                      </div>
-    }
-
     return (
-
-      displayInput
-     
+      <div className="transaction-input">
+        <input className="transaction-input-field" onChange={this.handleChange} type="text" value={this.state.transactionValue} placeholder="amount..."></input>
+        <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
+        <span className="error-message">{this.state.msg}</span>
+      </div>
     );
   }
 }
+
+
+/**
+ * Provides a UI for withdraw requests
+ */
+class WithdrawInput extends Component {
+
+  constructor(props){
+    super(props);
+  }
+
+  /**
+   * Call the withdraw method with option passed in props.
+   */
+  handleClick = () => {
+    this.props.onClick(this.props.option);
+  }
+
+  render() {
+    return (
+      <div className="transaction-input">
+        <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
+      </div>
+    );
+  }
+}
+
+
 
 export default App;

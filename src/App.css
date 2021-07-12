@@ -22,3 +22,14 @@ p {
 .error-message {
   color: #FF0000;
 }
+
+#transactions {
+  /* background-color: black; */
+  align-content: center;
+}
+
+
+
+.tabs {
+}
+
