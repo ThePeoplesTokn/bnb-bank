@@ -3,6 +3,7 @@ import { Container, Row, Col } from 'react-bootstrap';
 import './App.css';
 import Web3 from 'web3';
 import Bank from './abis/Bank.json';
+import { assertFlowBaseAnnotation } from '@babel/types';
 
 /**
  * Main app component
@@ -142,6 +143,11 @@ class App extends Component {
   }
 
 
+  /**
+   * Deposits funds into a user's bank account. Users can make multiple deposits.
+   * @param {*} amount 
+   * @returns 
+   */
   deposit = async(amount) => {
 
     const { web3, bank, account } = this.state;
@@ -161,45 +167,46 @@ class App extends Component {
     return true;
   }
 
-  withdraw = async(amount) => {
 
-    const { web3, bank, account } = this.state;
-    const value = web3.utils.toWei(amount, 'ether');
+  /**
+   * Withdraws all funds from a user's bank account
+   * @param {*} method - if set to 'Withdraw' the transaction withdraws without added token, 
+   * otherwise it withdraws with added token interest
+   * @returns true if withdraw was successfull, false otherwise.
+   */
+  withdraw = async(method) => {
 
-    // Send request
-    const receipt = await bank.methods.withdraw(value).send({ 
-      from: account
-    }).catch((error) => {
-      console.log('Withdraw error: ', error);
-      return false;
-    });
+    const { bank, account } = this.state;
 
-    // Update balance in window
-    this.updateBalance();
-    return true;
-  }
+    if (method === 'Withdraw') {
 
+      console.log('withdraw');
+      // Withdraw
+      await bank.methods.withdraw().send({ 
+        from: account
+      }).catch((error) => {
+        console.log('Withdraw error: ', error);
+        return false;
+      });
 
-  withdrawWithToken = async(amount) => {
+    } else {
 
-    const { web3, bank, account } = this.state;
-    const value = web3.utils.toWei(amount, 'ether');
+      console.log('with token');
+      // Withdraw with token interest
+      await bank.methods.withdrawWithInterest().send({ 
+        from: account
+      }).catch((error) => {
+        console.log('Withdraw error: ', error);
+        return false;
+      });
 
-    console.log('withdrawing');
-    // Send request
-    const receipt = await bank.methods.withdrawWithInterest(value).send({ 
-      from: account
-    }).catch((error) => {
-      console.log('Withdraw error: ', error);
-      return false;
-    });
+    }
     
     // Update balance in window
-    console.log('Withdraw:', receipt);
     this.updateBalance();
-    console.log('done');
     return true;
   }
+
 
   /**
    * Upadates the user's balance display after a transaction.
@@ -238,7 +245,6 @@ class App extends Component {
       }
       else {
 
-
         main = <div className="main">
 
                   <p><b>Your Address: </b><span className="numeric-field">{this.state.account}</span></p>
@@ -250,16 +256,19 @@ class App extends Component {
                     <TransactionInput
                       transactionType={'Deposit'}
                       onClick={this.deposit}
+                      fixedInput={false}
                     />
 
                     <TransactionInput
                       transactionType={'Withdraw'}
                       onClick={this.withdraw}
+                      fixedInput={true}
                     />
 
                     <TransactionInput
-                      transactionType={'Get Token'}
-                      onClick={this.withdrawWithToken}
+                      transactionType={'Withdraw with Token'}
+                      onClick={this.withdraw}
+                      fixedInput={true}
                     />
         
                   </div>
@@ -281,9 +290,9 @@ class App extends Component {
     }
 
     return (
+
       <div className="App">
 
-        
         <div className="app-header">
 
           <img className="logo" src={process.env.PUBLIC_URL + '/Palm-Tree-small.png'} />
@@ -316,7 +325,10 @@ class TransactionInput extends Component {
    * Call one of the App transaction methods passed in props, passing valid input as argument
    */
   handleClick = () => {
-    const value = this.state.transactionValue;
+    let value;
+    if (this.props.fixedInput) value = this.props.transactionType;
+    else value = this.state.transactionValue;
+    console.log('value:', value);
     if (value === '' || value == 0) {
       this.setState({ msg: 'Please enter an amount'});
     } else if (value) {
@@ -327,6 +339,8 @@ class TransactionInput extends Component {
         this.setState({ transactionValue: '' });
       }
     }
+  
+    
     
   }
 
@@ -344,15 +358,27 @@ class TransactionInput extends Component {
 
   render() {
 
+    let displayInput;
+    if (this.props.fixedInput) {
+
+      displayInput = <div className="transaction-input">
+                      <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
+                      <input className="transaction-input-field" onChange={this.handleChange} type="hidden" value={this.state.transactionType} placeholder="amount..."></input>
+                      <span className="error-message">{this.state.msg}</span>
+                    </div>
+    } else {
+
+      displayInput = <div className="transaction-input">
+                        <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
+                        <input className="transaction-input-field" onChange={this.handleChange} type="text" value={this.state.transactionValue} placeholder="amount..."></input>
+                        <span className="error-message">{this.state.msg}</span>
+                      </div>
+    }
+
     return (
 
-      <div className="transaction-input">
-        <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
-        <input className="transaction-input-field" onChange={this.handleChange} type="text" value={this.state.transactionValue} placeholder="amount..."></input>
-        <span className="error-message">{this.state.msg}</span>
-      </div>
+      displayInput
      
-      
     );
   }
 }

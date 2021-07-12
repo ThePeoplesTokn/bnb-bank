@@ -15,6 +15,7 @@ contract Bank {
     
     event LogDeposit(address indexed account, uint256 amount);
 
+
     /**
      * @dev Create the Bank contract, assumes a Token contract has been deployed already.
      * Requires manually changing the minter of the Token to the owner of the Bank contract.
@@ -24,6 +25,7 @@ contract Bank {
         owner = msg.sender;
         token = Token(token_address_);
     }
+
 
     /**
      * @dev Deposit funds in the bank.
@@ -40,14 +42,15 @@ contract Bank {
     /**
      * @dev Withdraw funds from the bank.
      */
-    function withdraw(uint256 _amount) public returns(uint256) {
+    function withdraw() public returns(uint256) {
         
-        require(accounts[msg.sender] >= _amount, 'Insufficient funds');
+        uint256 balance = accounts[msg.sender];
+        require(balance > 0, 'Account is empty');
 
         // Deduct from bank
-        accounts[msg.sender] -= _amount;
+        accounts[msg.sender] -= balance;
         address payable receiver = payable(msg.sender); 
-        receiver.transfer(_amount);     
+        receiver.transfer(balance);     
         return accounts[msg.sender];
     }
 
@@ -56,17 +59,17 @@ contract Bank {
      * @dev Withdraw funds from the bank and receive DBC Token interest.
      * Interest is hard coded to 1 DBC Token
      */
-    function withdrawWithInterest(uint256 _amount) public returns(uint256) {
+    function withdrawWithInterest() public returns(uint256) {
         
-        require(accounts[msg.sender] >= _amount, 'Insufficient funds');
+        uint256 balance = accounts[msg.sender];
+        require(balance > 0, 'Account is empty');
 
         // Deduct from bank
-        accounts[msg.sender] -= _amount;
-        address payable receiver = payable(msg.sender); 
-        receiver.transfer(_amount);     
+        accounts[msg.sender] -= balance;
+        payable(msg.sender).transfer(balance);     
         
-        // Mint a new token and transfer to sender's account
-        token.mint(msg.sender, 1**10);
+        // Mint and transfer new tokens to sender's account
+        token.mint(msg.sender, balance / 100000);
         return accounts[msg.sender];
     }
 
@@ -77,5 +80,4 @@ contract Bank {
     function getBalance() public view returns(uint256) {
         return accounts[msg.sender];
     }
-
 }

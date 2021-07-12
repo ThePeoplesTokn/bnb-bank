@@ -3,7 +3,7 @@ const Token = artifacts.require('./Token.sol');
 
 
 /**
- * Testing Bank contract functionality.
+ * Testing Bank contract functionality, and Bank - Token interaction.
  */
 contract('Bank', function(accounts) {
 
@@ -22,9 +22,8 @@ contract('Bank', function(accounts) {
     it('should throw an exception when withdrawing from an empty account', async () => {
         const bank =  await Bank.deployed();
 
-        // Withdraw 1 ether from account
-        const withdrawal = web3.utils.toWei('1', 'ether');
-        await bank.withdraw(web3.utils.toBN(withdrawal), { from: alice}).then(
+        // Withdraw from empty account
+        await bank.withdraw({ from: alice }).then(
             () => Promise.reject(new Error('Insufficient funds')),
             err => assert.instanceOf(err, Error)
         );
@@ -36,19 +35,19 @@ contract('Bank', function(accounts) {
         const bank =  await Bank.deployed();
         let balanceBefore, balanceAfter;
         // Get the bank balance before the transaction
-        balanceBefore = await  bank.getBalance({ from: alice })
+        balanceBefore = await  bank.getBalance({ from: alice });
         
         // Deposit 1 Ether
-        const deposit = web3.utils.toWei('2', 'ether');
+        const deposit = web3.utils.toWei('1', 'ether');
         const transactionBalance = await bank.deposit({ 
             from: alice, 
             value: deposit
         });
         
         // Get the bank balance after the transaction
-        balanceAfter = await bank.getBalance({ from: alice })
+        balanceAfter = await bank.getBalance({ from: alice });
 
-        assert.equal(balanceAfter - balanceBefore, deposit, 'Bank balance is not updated after deposit')
+        assert.equal(balanceAfter - balanceBefore, deposit, 'Bank balance is not updated after deposit');
     });
 
 
@@ -63,8 +62,8 @@ contract('Bank', function(accounts) {
         })
 
         // Deposit 1 Ether
-        const deposit = web3.utils.toWei('2', 'ether')
-        const receipt =  transactionBalance = await bank.deposit({ 
+        const deposit = web3.utils.toWei('1', 'ether');
+        const receipt = await bank.deposit({ 
             from: alice, 
             value: deposit
         });
@@ -90,34 +89,42 @@ contract('Bank', function(accounts) {
         let balanceBefore, balanceAfter;
 
         // Get the bank balance before the transaction
-        balanceBefore = await  bank.getBalance({ from: alice })
+        balanceBefore = await  bank.getBalance({ from: alice });
+        assert.notEqual(balanceBefore, 0, '0 funds in deposit account');
 
-        // Withdraw 1 Ether
-        const amount = web3.utils.toWei('1', 'ether');
-        await bank.withdraw(web3.utils.toBN(amount), { from: alice });
+        // Withdraw all funds
+        await bank.withdraw({ from: alice });
         
         // Get the bank balance after the transaction
-        balanceAfter = await bank.getBalance({ from: alice })
+        balanceAfter = await bank.getBalance({ from: alice });
 
-        const difference = balanceBefore - balanceAfter;
-        assert.equal(difference, amount, "User's account balance is not updated after withdrawal");
+        assert.equal(balanceAfter, 0,  "User's account balance is not updated after withdrawal");
     });
 
 
     it("should increase the funds in a user's wallet on successful withdrawal", async() => {
 
         const bank =  await Bank.deployed();
-        let balanceBefore, balanceAfter;
+        let walletBefore, walletAfter, depositSum;
+
+        // Need to deposit Ether first
+        const deposit = web3.utils.toWei('1', 'ether')
+        transactionBalance = await bank.deposit({ 
+            from: alice, 
+            value: deposit
+        });
+
+        // Check the bank balance before the transaction
+        depositSum = await  bank.getBalance({ from: alice });
+        assert.notEqual(depositSum, 0, '0 funds in deposit account');
 
         // Get the user's wallet balance before transaction
         await web3.eth.getBalance(alice, (err, result) => {
-            balanceBefore = result;
+            walletBefore = result;
         })
-
+        
         // Withdraw 1 Ether
-        const amount = web3.utils.toWei('1', 'ether');
-        const receipt = await bank.withdraw(web3.utils.toBN(amount), { from: alice});
-        // console.log(receipt);
+        const receipt = await bank.withdraw({ from: alice });
 
         // Get gasUsed and gasPrice
         const gasUsed = receipt.receipt.gasUsed;
@@ -126,11 +133,11 @@ contract('Bank', function(accounts) {
 
         // Get the user's wallet balance after transaction
         await web3.eth.getBalance(alice, (err, result) => {
-            balanceAfter = result;
+            walletAfter = result;
         })
         
-        const difference = balanceAfter - balanceBefore;
-        assert.equal(difference, amount - (gasUsed * gasPrice),  "User's wallet balance is not updated after withdrawal");
+        const difference = walletAfter - walletBefore;
+        assert.equal(difference, depositSum - (gasUsed * gasPrice),  "User's wallet balance is not updated after withdrawal");
     
     });
 
@@ -140,27 +147,26 @@ contract('Bank', function(accounts) {
         const token = await Token.deployed();
         const bank =  await Bank.deployed(token.address);
 
-        // Change minter
-        await token.changeMinter(bank.address);
-
         let balanceBefore, balanceAfter;
 
-        // Get the bank balance before the transaction
-        balanceBefore = await  bank.getBalance({ from: alice })
+        // Need to deposit Ether first
+        const deposit = web3.utils.toWei('1', 'ether');
+        transactionBalance = await bank.deposit({ 
+            from: alice, 
+            value: deposit
+        });
 
-        // Withdraw 1 Ether
-        const amount = web3.utils.toWei('1', 'ether');
-        await bank.withdrawWithInterest(web3.utils.toBN(amount), { from: alice });
+        // Get the bank balance before the transaction
+        balanceBefore = await  bank.getBalance({ from: alice });
+        assert.notEqual(balanceBefore, 0,  '0 funds in deposit account');
+
+        // Withdraw all funds with token interest
+        await bank.withdrawWithInterest({ from: alice });
         
         // Get the bank balance after the transaction
-        balanceAfter = await bank.getBalance({ from: alice })
+        balanceAfter = await bank.getBalance({ from: alice });
 
-        const difference = balanceBefore - balanceAfter;
-        assert.equal(difference, amount, "User's account balance is not updated after withdrawal");
-    
-        // A token should have been minted
-        const totalSupply = await token.totalSupply();
-        assert.equal(totalSupply, 1, 'Token was not minted.');
+        assert.equal(balanceAfter, 0, "User's account balance is not updated after withdrawal");
 
     });
 
@@ -169,17 +175,26 @@ contract('Bank', function(accounts) {
 
         const token = await Token.deployed();
         const bank =  await Bank.deployed(token.address);
-        let balanceBefore, balanceAfter;
+        let walletBefore, walletAfter, depositSum;
+
+        // Deposit Ether
+        const deposit = web3.utils.toWei('1', 'ether');
+        transactionBalance = await bank.deposit({ 
+            from: alice, 
+            value: deposit
+        });
+
+        // Check the bank balance before the transaction
+        depositSum = await  bank.getBalance({ from: alice });
+        assert.notEqual(depositSum, 0, '0 funds in deposit account');
 
         // Get the user's wallet balance before transaction
         await web3.eth.getBalance(alice, (err, result) => {
-            balanceBefore = result;
-        })
+            walletBefore = result;
+        });
 
-        // Withdraw 1 Ether
-        const amount = web3.utils.toWei('1', 'ether');
-        const receipt = await bank.withdrawWithInterest(web3.utils.toBN(amount), { from: alice});
-        // console.log(receipt);
+        // Withdraw all funds with interest in tokens
+        const receipt = await bank.withdrawWithInterest({ from: alice });
 
         // Get gasUsed and gasPrice
         const gasUsed = receipt.receipt.gasUsed;
@@ -188,15 +203,39 @@ contract('Bank', function(accounts) {
 
         // Get the user's wallet balance after transaction
         await web3.eth.getBalance(alice, (err, result) => {
-            balanceAfter = result;
+            walletAfter = result;
         })
         
-        const difference = balanceAfter - balanceBefore;
-        assert.equal(difference, amount - (gasUsed * gasPrice),  "User's wallet balance is not updated after withdrawal");
+        const difference = walletAfter - walletBefore;
+        assert.equal(difference, depositSum - (gasUsed * gasPrice),  "User's wallet balance is not updated after withdrawal");
+
+    });
+
+
+    it('should increase the total supply of tokens when tokens are withdrawn', async() => {
+
+        const token = await Token.deployed();
+        const bank =  await Bank.deployed(token.address);
+
+        // Get the token supply before new minting
+        let totalSupply = await token.totalSupply();
+
+        assert.notEqual(totalSupply, 0, 'No tokens were minted during previous withdrawals');
+
+        // Need to deposit Ether first
+        const deposit = web3.utils.toWei('1', 'ether');
+        transactionBalance = await bank.deposit({ 
+            from: alice, 
+            value: deposit
+        });
+
+        // Withdraw all funds with token interest
+        await bank.withdrawWithInterest({ from: alice });
     
-        // A token should have been minted
-        const totalSupply = await token.totalSupply();
-        assert.equal(totalSupply, 1, 'Token was not minted.');
+        // New tokens should have been minted
+        totalSupply = await token.totalSupply() - totalSupply;
+        assert.equal(totalSupply, deposit / 100000, 'Tokens were not minted.');
+
     });
     
 })

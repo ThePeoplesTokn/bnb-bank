@@ -12,13 +12,15 @@ contract Token is ERC20 {
 
     event MinterChanged(address indexed account);
     
+
     /**
      * @dev Create the token and assign a minter
      */ 
-    constructor() payable ERC20("DBC", "DBC") {
+    constructor() payable ERC20("TEST", "TEST") {
         // Initial minter is the address that deploys the contract
         minter = msg.sender;
     }
+
 
     /**
      * @dev Change the minter address, restricted to the minter
