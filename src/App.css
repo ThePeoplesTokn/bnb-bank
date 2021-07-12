@@ -7,7 +7,7 @@ h1 {
 }
 
 p { 
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .logo {
@@ -19,17 +19,96 @@ p {
   font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace!important;
 }
 
-.error-message {
-  color: #FF0000;
+
+#welcome {
+  margin: 26px 0px 10px 0px;
+}
+
+#address {
+  margin: 26px 0px 0px 0px;
+  
+} 
+
+#address-hash {
+  position:relative;
+  top: -12px;
+  font-size:22px;
+}
+
+#balance {
+  margin: 8px 0px 10px 0px;
 }
 
 #transactions {
-  /* background-color: black; */
   align-content: center;
+  /* border-top: 1px solid #909090;   */
+  padding-top: 20px;
 }
 
+#transaction-selection {
+  width:400px;
 
-
-.tabs {
 }
 
+.row {
+  /* align-content: center; */
+  margin-left: auto;
+  margin-right: auto;
+  width:400px;
+}
+
+.col {
+  width: 200px;
+}
+
+.transaction-description {
+  font-size: 16px;
+  margin: 0px;
+  margin-left: 10px;
+}
+
+/* #transaction-selection-tab-first:checked {
+  background-color: #B0B0B0;
+}
+
+.nav-pills .nav-link {
+  background-color: #FF0000;
+} 
+
+a .show>.nav-link .nav-link.active{
+  background-color: #909090;
+} */
+
+.tab-content {
+  border-left: 1px solid #909090;
+}
+
+#add-token {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.transaction-input-field {
+  width: 160px;
+  margin: 5px 0px 5px 10px;
+}
+
+.error-message {
+  color: #FF0000;
+  font-size: 18px;
+  margin-top: 5px;
+  position:absolute;
+  left: 5px;
+  width: 200px;
+  height: 12px;
+  overflow:unset;
+}
+
+.transaction-button {
+  background-color: #007bff;
+  border: 0px;
+  border-radius: 2px;
+  color: #FFFFFF;
+  width: 90px;
+  height: 36px;
+}

@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import { Container, Row, Col, Tab, Nav } from 'react-bootstrap';
+import { Row, Col, Tab, Nav } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import Web3 from 'web3';
 import Bank from './abis/Bank.json';
-import { assertFlowBaseAnnotation } from '@babel/types';
+import { DepositInput, WithdrawInput } from './TransactionInputs';
 
 /**
  * Main app component
@@ -239,7 +239,7 @@ class App extends Component {
 
         main = <div className="main">
 
-                <p>Please change network in MetaMask</p>
+                <p id="change-network">Please change network in MetaMask</p>
 
                </div>
 
@@ -248,15 +248,20 @@ class App extends Component {
 
         main = <div className="main">
 
-                  <p><b>Your Address: </b><span className="numeric-field">{this.state.account}</span></p>
+                  <div id="address">
+                    <p>Your Address: </p>
+                    <p id="address-hash" className="numeric-field">{this.state.account}</p>
+                  </div>
                   {/* <p><b>Wallet: </b><span className="numeric-field">{this.state.walletBalance}</span> BNB</p> */}
-                  <p><b>BNB balance: </b><span className="numeric-field">{this.state.bankBalance}</span> BNB</p>
+                  <div id="balance">
+                    <p>Bank balance: <span className="numeric-field">{this.state.bankBalance} BNB</span> </p>
+                  </div>
                   
                   <div id="transactions">
-
+                  
                     <Tab.Container id="transaction-selection" defaultActiveKey="first">
-                      <Row>
-                        <Col sm={{ span: 2, offset: 4 }}>
+                      <Row className="row">
+                        <Col className="col">
                           <Nav  variant="pills" className="flex-column">
                             <Nav.Item>
                               <Nav.Link className="tabs" eventKey="first">Deposit</Nav.Link>
@@ -266,8 +271,8 @@ class App extends Component {
                             </Nav.Item>
                           </Nav>
                         </Col>
-                        <Col sm={2}>
-                          <Tab.Content>
+                        <Col className="col">
+                          <Tab.Content className="tab-content">
                             <Tab.Pane eventKey="first">
 
                               <DepositInput className="top"
@@ -282,15 +287,7 @@ class App extends Component {
                                 transactionType={'Withdraw'}
                                 onClick={this.withdraw}
                                 balance={this.state.bankBalance}
-                                option={false}
-                                />
-
-                              <WithdrawInput
-                                transactionType={'Withdraw with Token'}
-                                onClick={this.withdraw}
-                                balance={this.state.bankBalance}
-                                option={true}
-                                />
+                              />
 
                             </Tab.Pane>
                           </Tab.Content>
@@ -307,11 +304,11 @@ class App extends Component {
       console.log(false);
       main = <div className="main">
 
-                <p>Log in with MetaMask to continue.</p>
+                <p id="please-login">Log in with MetaMask to continue.</p>
 
                 <button id="connect-button" onClick={this.loadBlockChainData}>Connect</button>
 
-                <p>Don't have MetaMask installed? Get it <a href="https://metamask.io/" target="_blank" rel="noopener noreferrer">here</a>.</p>
+                <p id="intall-link">Don't have MetaMask installed? Get it <a href="https://metamask.io/" target="_blank" rel="noopener noreferrer">here</a>.</p>
              
               </div>
     }
@@ -324,159 +321,12 @@ class App extends Component {
 
           <img className="logo" src={process.env.PUBLIC_URL + '/Palm-Tree-small.png'} />
           
-          <h1>Welcome to BNB Bank</h1>
+          <h1 id="welcome">Welcome to BNB Bank</h1>
 
         </div>
 
         {main}
 
-      </div>
-    );
-  }
-}
-
-
-
-/**
- * Provides a UI for deposit requests
- */
-class DepositInput extends Component {
-
-  constructor(props){
-    super(props);
-    this.state = {
-      transactionValue: ''
-    };
-    this.wrapperRef = React.createRef();
-    // this.setWrapperRef = this.setWrapperRef.bind(this);
-    this.handleClickOutside = this.handleClickOutside.bind(this);
-  }
-
-
-  componentDidMount() {
-    document.addEventListener('mousedown', this.handleClickOutside);
-  }
-
-  componentWillUnmount() {
-      document.removeEventListener('mousedown', this.handleClickOutside);
-  }
-
-  /**
-   * Alert if clicked on outside of element
-   */
-  handleClickOutside(event) {
-      if (this.wrapperRef && !this.wrapperRef.current.contains(event.target)) {
-        this.setState({ msg: ''});
-      }
-  }
-
-  /**
-   * Call one of the App transaction methods passed in props, passing valid input as argument
-   */
-  handleClick = () => {
-    const value = this.state.transactionValue;
-    if (value === '' || value == 0) {
-      this.setState({ msg: 'Please enter an amount'});
-    } else if (value) {
-      this.setState({ msg: ''});
-      const success = this.props.onClick(value);
-      // Remove number from input field if transaction is successful
-      if (success) {
-        this.setState({ transactionValue: '' });
-      }
-    }
-  }
-
-  /**
-   * Check for valid numerical input, numbers are limited to two decimal places.
-   * @param {*} e - input change event
-   */
-  handleChange = (e) => {
-    const regCheck = /^\d+(\.\d{0,2})?$/;
-    const value = e.target.value;
-    if (value === '' || regCheck.test(value)) {
-      this.setState({ transactionValue: e.target.value })
-    } 
-  }
-
-  render() {
-    return (
-      <div className="transaction-input" ref={this.wrapperRef}>
-        <input className="transaction-input-field" onChange={this.handleChange} type="text" value={this.state.transactionValue} placeholder="amount..."></input>
-        <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
-        <span className="error-message">{this.state.msg}</span>
-      </div>
-    );
-  }
-}
-
-
-/**
- * Provides a UI for withdraw requests
- */
-class WithdrawInput extends Component {
-
-  constructor(props){
-    super(props);
-    this.state = {
-      msg: ''
-    };
-    this.wrapperRef = React.createRef();
-    // this.setWrapperRef = this.setWrapperRef.bind(this);
-    this.handleClickOutside = this.handleClickOutside.bind(this);
-  }
-
-  componentDidMount() {
-    document.addEventListener('mousedown', this.handleClickOutside);
-  }
-
-  componentWillUnmount() {
-      document.removeEventListener('mousedown', this.handleClickOutside);
-  }
-
-  /**
-   * Alert if clicked on outside of element
-   */
-  handleClickOutside(event) {
-      if (this.wrapperRef && !this.wrapperRef.current.contains(event.target)) {
-        this.setState({ msg: ''});
-      }
-  }
-
-  /**
-   * Call one of the App transaction methods passed in props, passing valid input as argument
-   */
-  handleClick = () => {
-    const value = this.state.transactionValue;
-    if (value === '' || value == 0) {
-      this.setState({ msg: 'Please enter an amount'});
-    } else if (value) {
-      this.setState({ msg: ''});
-      const success = this.props.onClick(value);
-      // Remove number from input field if transaction is successful
-      if (success) {
-        this.setState({ transactionValue: '' });
-      }
-    }
-  }
-
-  /**
-   * Call the withdraw method with option passed in props.
-   */
-  handleClick = () => {
-    if (this.props.balance == 0) {
-      this.setState({ msg: 'Insuffient funds' });
-    } else {
-      this.props.onClick(this.props.option);
-      this.setState({ msg: '' });
-    }
-  }
-
-  render() {
-    return (
-      <div className="transaction-input" ref={this.wrapperRef}>
-        <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
-        <span className="error-message">{this.state.msg}</span>
       </div>
     );
   }
