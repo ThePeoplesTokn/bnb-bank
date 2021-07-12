@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, { Component } from 'react';
 import { Container, Row, Col, Tab, Nav } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
@@ -281,12 +281,14 @@ class App extends Component {
                               <WithdrawInput className="top"
                                 transactionType={'Withdraw'}
                                 onClick={this.withdraw}
+                                balance={this.state.bankBalance}
                                 option={false}
                                 />
 
                               <WithdrawInput
                                 transactionType={'Withdraw with Token'}
                                 onClick={this.withdraw}
+                                balance={this.state.bankBalance}
                                 option={true}
                                 />
 
@@ -334,6 +336,7 @@ class App extends Component {
 }
 
 
+
 /**
  * Provides a UI for deposit requests
  */
@@ -344,6 +347,27 @@ class DepositInput extends Component {
     this.state = {
       transactionValue: ''
     };
+    this.wrapperRef = React.createRef();
+    // this.setWrapperRef = this.setWrapperRef.bind(this);
+    this.handleClickOutside = this.handleClickOutside.bind(this);
+  }
+
+
+  componentDidMount() {
+    document.addEventListener('mousedown', this.handleClickOutside);
+  }
+
+  componentWillUnmount() {
+      document.removeEventListener('mousedown', this.handleClickOutside);
+  }
+
+  /**
+   * Alert if clicked on outside of element
+   */
+  handleClickOutside(event) {
+      if (this.wrapperRef && !this.wrapperRef.current.contains(event.target)) {
+        this.setState({ msg: ''});
+      }
   }
 
   /**
@@ -377,7 +401,7 @@ class DepositInput extends Component {
 
   render() {
     return (
-      <div className="transaction-input">
+      <div className="transaction-input" ref={this.wrapperRef}>
         <input className="transaction-input-field" onChange={this.handleChange} type="text" value={this.state.transactionValue} placeholder="amount..."></input>
         <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
         <span className="error-message">{this.state.msg}</span>
@@ -394,19 +418,65 @@ class WithdrawInput extends Component {
 
   constructor(props){
     super(props);
+    this.state = {
+      msg: ''
+    };
+    this.wrapperRef = React.createRef();
+    // this.setWrapperRef = this.setWrapperRef.bind(this);
+    this.handleClickOutside = this.handleClickOutside.bind(this);
+  }
+
+  componentDidMount() {
+    document.addEventListener('mousedown', this.handleClickOutside);
+  }
+
+  componentWillUnmount() {
+      document.removeEventListener('mousedown', this.handleClickOutside);
+  }
+
+  /**
+   * Alert if clicked on outside of element
+   */
+  handleClickOutside(event) {
+      if (this.wrapperRef && !this.wrapperRef.current.contains(event.target)) {
+        this.setState({ msg: ''});
+      }
+  }
+
+  /**
+   * Call one of the App transaction methods passed in props, passing valid input as argument
+   */
+  handleClick = () => {
+    const value = this.state.transactionValue;
+    if (value === '' || value == 0) {
+      this.setState({ msg: 'Please enter an amount'});
+    } else if (value) {
+      this.setState({ msg: ''});
+      const success = this.props.onClick(value);
+      // Remove number from input field if transaction is successful
+      if (success) {
+        this.setState({ transactionValue: '' });
+      }
+    }
   }
 
   /**
    * Call the withdraw method with option passed in props.
    */
   handleClick = () => {
-    this.props.onClick(this.props.option);
+    if (this.props.balance == 0) {
+      this.setState({ msg: 'Insuffient funds' });
+    } else {
+      this.props.onClick(this.props.option);
+      this.setState({ msg: '' });
+    }
   }
 
   render() {
     return (
-      <div className="transaction-input">
+      <div className="transaction-input" ref={this.wrapperRef}>
         <button className="transaction-button" onClick={this.handleClick}>{this.props.transactionType}</button>
+        <span className="error-message">{this.state.msg}</span>
       </div>
     );
   }
