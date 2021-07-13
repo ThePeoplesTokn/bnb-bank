@@ -41,15 +41,12 @@ class App extends Component {
     try {
       const connected = window.ethereum.isConnected();
       if (! connected) {
-        console.log('Connect: User is not logged in');
         // User is not logged in - show connect button
       } else {
-        console.log('Connect: User is logged in');
         // User is logged in - load block chain data
         this.loadBlockChainData();
       }
     } catch(error) {
-      console.log('Connect error:', error);
       // User is not logged in - show connect button
     }
     
@@ -76,18 +73,13 @@ class App extends Component {
 
       // Load Bank contract - get balance for the user
       let networkId = await window.web3.eth.net.getId();
-      console.log('networkId', networkId);
       let deployedNetwork = Bank.networks[networkId];
       if (!deployedNetwork) {
 
-        console.log('network change required');
         try {
           // Prompt network change
-          console.log('change network');
-          console.log(Object.keys(Bank.networks)[0]);
           let chainId = Object.keys(Bank.networks)[0];
           chainId = window.web3.utils.toHex(chainId);
-          console.log(chainId);
   
           // Add the TestNet chain if necessary
           await window.ethereum.request({
@@ -113,7 +105,6 @@ class App extends Component {
 
           // reassign network variables
           networkId = await window.web3.eth.net.getId();
-          console.log('networkId', networkId);
           deployedNetwork = Bank.networks[networkId];
  
         } catch (error) {
@@ -121,9 +112,7 @@ class App extends Component {
         }
       } 
       if (deployedNetwork) {
-        console.log('deployedNetwork', deployedNetwork); 
         const address = deployedNetwork.address  
-        console.log('address', address);
         this.setState({ bankAddress: address });
         this.setState({ bank: new window.web3.eth.Contract(
           Bank.abi,
@@ -159,7 +148,6 @@ class App extends Component {
           from: account, 
           value: value
     }).catch((error) => {
-      console.log('Deposit error: ', error);
       return false;
     });
 
@@ -181,23 +169,19 @@ class App extends Component {
 
     if (! method) {
 
-      console.log('withdraw');
       // Withdraw
       await bank.methods.withdraw().send({ 
         from: account
       }).catch((error) => {
-        console.log('Withdraw error: ', error);
         return false;
       });
 
     } else {
 
-      console.log('with token');
       // Withdraw with token interest
       await bank.methods.withdrawWithInterest().send({ 
         from: account
       }).catch((error) => {
-        console.log('Withdraw error: ', error);
         return false;
       });
 
@@ -233,13 +217,13 @@ class App extends Component {
 
     let main;
     if (this.state.connected) {
-      console.log(true);
 
+      // Should change network automatically, but message to change enetwork is displayed if not
       if (!this.state.bankAddress) {
 
         main = <div className="main">
 
-                <p id="change-network">Please change network in MetaMask</p>
+                <p id="change-network">To continue, please select the Testnet network in MetaMask</p>
 
                </div>
 
@@ -301,14 +285,13 @@ class App extends Component {
       }
 
     } else {
-      console.log(false);
       main = <div className="main">
 
-                <p id="please-login">Log in with MetaMask to continue.</p>
+                <p id="login">Connect with MetaMask to continue.</p>
 
                 <button id="connect-button" onClick={this.loadBlockChainData}>Connect</button>
 
-                <p id="intall-link">Don't have MetaMask installed? Get it <a href="https://metamask.io/" target="_blank" rel="noopener noreferrer">here</a>.</p>
+                <p id="install-link">Don't have MetaMask installed? Get it <a href="https://metamask.io/" target="_blank" rel="noopener noreferrer">here</a>.</p>
              
               </div>
     }

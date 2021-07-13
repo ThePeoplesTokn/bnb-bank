@@ -119,7 +119,6 @@ export class WithdrawInput extends Component {
     }
 
     handleChange = () => {
-        console.log('change');
         if (this.state.option) this.setState({ option: false });
         else this.setState({ option: true });
     }
