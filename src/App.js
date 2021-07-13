@@ -30,14 +30,12 @@ class App extends Component {
     this.connect();
   }
 
-
   /**
    * Checks if a user is logged into MetaMask.
    * If logged in loads block chain data.
    * Else, waits for the user to choose to connect with connect button - no unprovoked pop-ups.
    */
   connect = async() => {
-
     try {
       const connected = window.ethereum.isConnected();
       if (! connected) {
@@ -54,7 +52,8 @@ class App extends Component {
 
 
   /**
-   * Load blockchain data from MetaMask
+   * Load blockchain data from MetaMask - account addresses, balances etc.
+   * Also checks that the right network is connected in MetaMask
    */
   loadBlockChainData = async () => {
 
@@ -85,15 +84,15 @@ class App extends Component {
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
             params: [{
-              chainId: chainId,
-              chainName: "Ganache",
-              rpcUrls: ["http://127.0.0.1:7545"],
+              chainId: '0x61',
+              chainName: "Smart Chain - Testnet",
+              rpcUrls: ["https://data-seed-prebsc-1-s1.binance.org:8545"],
               nativeCurrency: {
-                name: "ETHER",
-                symbol: "ETH",
+                name: "BNB",
+                symbol: "BNB",
                 decimals: 18,
               },
-              blockExplorerUrls: ["http://127.0.0.1:7545"],
+              blockExplorerUrls: ["https://testnet.bscscan.com"],
             }]
           });
 
@@ -135,8 +134,9 @@ class App extends Component {
 
   /**
    * Deposits funds into a user's bank account. Users can make multiple deposits.
-   * @param {*} amount 
-   * @returns 
+   * Input is parsed in the DepositInput component to allow a minimum deposit amount of 0.01
+   * @param {*} amount - the amount to deposit
+   * @returns true if successful, false otherwise
    */
   deposit = async(amount) => {
 
@@ -158,9 +158,9 @@ class App extends Component {
 
 
   /**
-   * Withdraws all funds from a user's bank account
-   * @param {*} method - if set to 'Withdraw' the transaction withdraws without added token, 
-   * otherwise it withdraws with added token interest
+   * Withdraws all funds from a user's bank account, and transfers tokens if selected
+   * @param {*} method - if true, the transaction withdraws with added token, 
+   * otherwise it withdraws without added token interest
    * @returns true if withdraw was successfull, false otherwise.
    */
   withdraw = async(method) => {
@@ -215,21 +215,27 @@ class App extends Component {
 
   render() {
 
+    // There are three cases that the App renders:
+    // 1. The user is connected to MetaMask, but the wrong network
+    // 2. The user is connected to MetMask and the correct network
+    // 3. The user is not connected to MetaMask
+
     let main;
     if (this.state.connected) {
 
+      // 1. The user is connected to MetaMask, but the wrong network
       // Should change network automatically, but message to change enetwork is displayed if not
       if (!this.state.bankAddress) {
 
         main = <div className="main">
-
                 <p id="change-network">To continue, please select the Testnet network in MetaMask</p>
-
                </div>
 
       }
       else {
 
+        // 2. The user is connected to MetMask and the correct network
+        // Renders the main content of the website - deposit and withdraw features
         main = <div className="main">
 
                   <div id="address">
@@ -285,6 +291,9 @@ class App extends Component {
       }
 
     } else {
+
+      // 3. The user is not connected to MetaMask
+      // Renders a prompt to connect with MetaMask
       main = <div className="main">
 
                 <p id="login">Connect with MetaMask to continue.</p>
@@ -314,7 +323,5 @@ class App extends Component {
     );
   }
 }
-
-
 
 export default App;

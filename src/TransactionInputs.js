@@ -85,16 +85,6 @@ export class WithdrawInput extends Component {
             option: false,
             msg: ''
         };
-        this.wrapperRef = React.createRef();
-        this.handleClickOutside = this.handleClickOutside.bind(this);
-    }
-
-    componentDidMount() {
-        document.addEventListener('mousedown', this.handleClickOutside);
-    }
-
-    componentWillUnmount() {
-        document.removeEventListener('mousedown', this.handleClickOutside);
     }
 
     /**
@@ -118,18 +108,24 @@ export class WithdrawInput extends Component {
         }
     }
 
+    /**
+     * Changes the radio buttons's checked status
+     */
     handleChange = () => {
         if (this.state.option) this.setState({ option: false });
         else this.setState({ option: true });
     }
 
+    /**
+     * Handles onClick for the radio button
+     */
     deselect = () => {
         if (this.state.option) this.handleChange();
     }
 
     render() {
         return (
-            <div className="transaction-input" ref={this.wrapperRef}>
+            <div className="transaction-input">
                 <p className="transaction-description">Withdraw all funds from your account?</p>
                 <input type="radio" id="add-token" onClick={this.deselect} onChange={this.handleChange} checked={this.state.option} value="receive token interest"/>
                 <label for="add-token">&nbsp; add interest </label>

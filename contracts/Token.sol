@@ -16,7 +16,7 @@ contract Token is ERC20 {
     /**
      * @dev Create the token and assign a minter
      */ 
-    constructor() payable ERC20("TEST", "TEST") {
+    constructor() payable ERC20("PTC", "PTC") {
         // Initial minter is the address that deploys the contract
         minter = msg.sender;
     }
