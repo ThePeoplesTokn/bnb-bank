@@ -14,11 +14,11 @@ export class DepositInput extends Component {
         this.handleClickOutside = this.handleClickOutside.bind(this);
     }
 
-    componentDidMount() {
+    UNSAFE_componentDidMount() {
         document.addEventListener('mousedown', this.handleClickOutside);
     }
 
-    componentWillUnmount() {
+    UNSAFE_componentWillUnmount() {
         document.removeEventListener('mousedown', this.handleClickOutside);
     }
 
@@ -36,7 +36,7 @@ export class DepositInput extends Component {
      */
     handleClick = () => {
         const value = this.state.transactionValue;
-        if (value === '' || value == 0) {
+        if (value === '' || value === 0) {
             this.setState({ msg: 'Please enter an amount'});
         } else if (value) {
             this.setState({ msg: ''});
@@ -85,6 +85,16 @@ export class WithdrawInput extends Component {
             option: false,
             msg: ''
         };
+        this.wrapperRef = React.createRef();
+        this.handleClickOutside = this.handleClickOutside.bind(this);
+    }
+
+    UNSAFE_componentDidMount() {
+        document.addEventListener('mousedown', this.handleClickOutside);
+    }
+
+    UNSAFE_componentWillUnmount() {
+        document.removeEventListener('mousedown', this.handleClickOutside);
     }
 
     /**
@@ -100,7 +110,7 @@ export class WithdrawInput extends Component {
      * Call the withdraw method with option passed in props.
      */
     handleClick = () => {
-        if (this.props.balance == 0) {
+        if (this.props.balance === 0) {
             this.setState({ msg: 'Insuffient funds' });
         } else {
             this.props.onClick(this.state.option);
@@ -125,10 +135,10 @@ export class WithdrawInput extends Component {
 
     render() {
         return (
-            <div className="transaction-input">
+            <div className="transaction-input" ref={this.wrapperRef}>
                 <p className="transaction-description">Withdraw all funds from your account?</p>
                 <input type="radio" id="add-token" onClick={this.deselect} onChange={this.handleChange} checked={this.state.option} value="receive token interest"/>
-                <label for="add-token">&nbsp; add interest </label>
+                <label htmlFor="add-token">&nbsp; add interest </label>
                 <button className="transaction-button" onClick={this.handleClick}>Confirm</button>
                 <div className="error-message">{this.state.msg}</div>
             </div>

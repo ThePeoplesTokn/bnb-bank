@@ -26,7 +26,7 @@ class App extends Component {
     };
   }
   
-  componentWillMount() {
+  UNSAFE_componentDidMount() {
     this.connect();
   }
 
@@ -60,15 +60,9 @@ class App extends Component {
     if (window.ethereum) {
 
       // Calls MetaMask pop-up
-      await window.ethereum.send('eth_requestAccounts');  
-      window.web3 = new Web3(window.ethereum);
+      await window.ethereum.request({ method: 'eth_requestAccounts' });  
+      window.web3 = await new Web3(window.ethereum);
       this.setState({ web3: window.web3 });
-      this.setState({ connected: true });
-
-      // Set event handler to reload page on network changes
-      window.ethereum.on('chainChanged', (chainId) => {
-        window.location.reload();
-      });
 
       // Load Bank contract - get balance for the user
       let networkId = await window.web3.eth.net.getId();
@@ -76,9 +70,6 @@ class App extends Component {
       if (!deployedNetwork) {
 
         try {
-          // Prompt network change
-          let chainId = Object.keys(Bank.networks)[0];
-          chainId = window.web3.utils.toHex(chainId);
   
           // Add the TestNet chain if necessary
           await window.ethereum.request({
@@ -99,7 +90,7 @@ class App extends Component {
           // Switch chain
           await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: chainId }], 
+            params: [{ chainId: '0x61' }], 
           });
 
           // reassign network variables
@@ -124,6 +115,7 @@ class App extends Component {
         this.updateBalance();
         
       }
+      this.setState({ connected: true });
     }
     else {
       console.log('Please install MetaMask to continue');
@@ -144,7 +136,7 @@ class App extends Component {
     const value = web3.utils.toWei(amount, 'ether');
 
     // Send Request
-    const receipt = await bank.methods.deposit().send({ 
+    await bank.methods.deposit().send({ 
           from: account, 
           value: value
     }).catch((error) => {
@@ -225,7 +217,7 @@ class App extends Component {
 
       // 1. The user is connected to MetaMask, but the wrong network
       // Should change network automatically, but message to change enetwork is displayed if not
-      if (!this.state.bankAddress) {
+      if (this.state.web3 === '') {
 
         main = <div className="main">
                 <p id="change-network">To continue, please select the Testnet network in MetaMask</p>
@@ -311,7 +303,7 @@ class App extends Component {
 
         <div className="app-header">
 
-          <img className="logo" src={process.env.PUBLIC_URL + '/Palm-Tree-small.png'} />
+          <img className="logo" alt="Palm tree logo" src={process.env.PUBLIC_URL + '/palm_tree_medium.png'} />
           
           <h1 id="welcome">Welcome to BNB Bank</h1>
 
